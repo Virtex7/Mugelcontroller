@@ -58,5 +58,5 @@ LibName26=opto
 LibName27=atmel
 LibName28=contrib
 LibName29=valves
-LibName30=/home/philipp/Dokumente/dev/PhilippsKicadBauteile/Schaltplansymbole/ph-motor
-LibName31=/home/philipp/Dokumente/dev/PhilippsKicadBauteile/Schaltplansymbole/Resonator_3pins
+LibName30=../../PhilippsKicadBauteile/Schaltplansymbole/ph-motor
+LibName31=../../PhilippsKicadBauteile/Schaltplansymbole/Resonator_3pins
