@@ -1,4 +1,4 @@
-(kicad_pcb (version 4) (host pcbnew 0.201511171411+6319~30~ubuntu15.10.1-product)
+(kicad_pcb (version 4) (host pcbnew 0.201512031508+6343~38~ubuntu15.10.1-stable)
 
   (general
     (links 256)
@@ -2385,11 +2385,11 @@
   (gr_line (start 218.5 102) (end 218 102) (angle 90) (layer B.Mask) (width 0.5))
   (gr_line (start 219 102.5) (end 218.5 102) (angle 90) (layer B.Mask) (width 0.5))
   (gr_line (start 224.5 97) (end 219 102.5) (angle 90) (layer B.Mask) (width 0.5))
-  (gr_text "Sven Schneider\n" (at 194.5 92 270) (layer B.SilkS)
-    (effects (font (size 1.5 1.5) (thickness 0.3)) (justify mirror))
+  (gr_text "(C) Sven T. Schneider\n" (at 193.421 98.933 270) (layer F.SilkS)
+    (effects (font (size 1 1) (thickness 0.15)))
   )
-  (gr_text "(C) Philipp Hörauf\n" (at 197 94.5 270) (layer B.SilkS)
-    (effects (font (size 1.5 1.5) (thickness 0.3)) (justify mirror))
+  (gr_text "(C) Philipp Hörauf\n" (at 193.421 75.692 270) (layer F.SilkS)
+    (effects (font (size 1 1) (thickness 0.15)))
   )
   (gr_line (start 227.5 69) (end 228 69) (angle 90) (layer B.Mask) (width 0.5))
   (gr_line (start 226 70.5) (end 227.5 69) (angle 90) (layer B.Mask) (width 0.5))
