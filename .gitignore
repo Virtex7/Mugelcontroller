@@ -32,3 +32,8 @@
 
 # KiCAD Backup
 *.bak
+*.kicad_pcb-bak
+
+# Dateibrowser
+.directory
+thumbs.db
