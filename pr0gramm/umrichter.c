@@ -41,7 +41,7 @@
 void timerInit (void) {
 	TCCR1A = 1<<COM1A1 | 1<<WGM11 | 1<<WGM10;
 	TCCR1B = 1<<WGM12 | 1<<CS10;
-	OCR1A = 100; // Startwert 10%
+	OCR1A = 250; // Startwert 10%
 }
 
 // Hardware SPI Speed <= 20MHz. (hier = 1MHz)
@@ -86,14 +86,14 @@ uint16_t a4960ReadStatus (void) {
 }
 
 void a4960Init (void) {
-	a4960Com (0b0001, CB0 | BT3 | DT4 | DT2);
+	a4960Com (0b0001, BT3 | DT4 | DT2);
 	a4960Com (0b0011, VR3 | VT5);
 	a4960Com (0b0101, PT4);
-	a4960Com (0b0111, HQ2 | HQ0 | HT3);
-	a4960Com (0b1001, EC3 | EC2 | EC1 | EC0 | SC2);
-	a4960Com (0b1011, RQ3 | RR3);
+	a4960Com (0b0111, HQ3 | HQ0 | HT2);
+	a4960Com (0b1001, EC2 | EC1 | EC0 | SC1);
+	a4960Com (0b1011, RQ3 | RR0);
 	a4960Com (0b1101, 0x0FFF);
-	a4960Com (0b1111, BW2 | RSC);
+	a4960Com (0b1111, BW2 | BW1 | RSC);
 }
 
 void a4960MotorOn (void) {
