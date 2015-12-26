@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <math.h>
 
 
 // Configregister wie im Datenblatt auf Seite 24 angegeben:
