@@ -134,12 +134,12 @@ ASFLAGS += -DF_OSC=$(F_OSC) -DF_CPU=$(F_CPU)
 #Additional libraries.
 
 # Minimalistic printf version
-PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
+# PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
 
 # Floating point printf version (requires MATH_LIB = -lm below)
-PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
+# PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
 
-PRINTF_LIB =
+PRINTF_LIB =  -Wl,-u,vfprintf -lprintf_flt
 
 # Minimalistic scanf version
 SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
