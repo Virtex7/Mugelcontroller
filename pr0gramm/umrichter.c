@@ -158,23 +158,100 @@ ISR (INT1_vect, ISR_BLOCK) {
 // 	ERROR(1);
 }
 
+uint16_t tacho = 0, sollfrequenz = 1200; // Tachofrequenz...
+
+//
 ISR (USART_RXC_vect, ISR_BLOCK) {
 	char empfangen = UDR;
+
+	//0 = Warten auf neue; 1 = msg start; 2 = motorCW; 3 = motorCCW; 4 = motor stop; 5 = rpm; 200 = ERROR
+	static uint8_t msgStatus = 0;
+
+	static uint8_t rpm_checksum = 0;
+	static uint8_t rpm_lastDigit = 0;
+	static uint16_t rpm_setTo = 0;
+
 	uartTx(empfangen); // remote echo
-	if (empfangen == 'x') {
-		a4960MotorOff();
-	} else if (empfangen == 's') {
-		a4960MotorOn(1);
+
+	if (empfangen == '>') { //
+		if(msgStatus <= 1){
+			uartTxStrln("<NoM>"); //Empty Message
+		} else if(msgStatus == 2){
+			if(motorstatus != -1) {
+				a4960MotorOn(1);
+				uartTxStrln("<ACK>");
+			} else {
+				uartTxStrln("<ERX>");
+			}
+		} else if(msgStatus == 3){
+			if(motorstatus != 1) {
+				a4960MotorOn(-1);
+				uartTxStrln("<ACK>");
+			} else {
+				uartTxStrln("<ERX>");
+			}
+		} else if(msgStatus == 4){
+			a4960MotorOff();
+			uartTxStrln("<ACK>");
+		} else if(msgStatus == 5){
+			if (rpm_lastDigit == rpm_checksum) {
+				cli();
+				sollfrequenz = rpm_setTo;
+				sei();
+				uartTxStrln("<ACK>");
+			} else {
+				uartTxStrln("<ERC>");
+			}
+		} else {
+			uartTxStrln("<ERR>");
+		}
+		msgStatus = 0;
+	} else if (msgStatus == 0) { //Erwarte Start der Nachricht
+		if (empfangen == '<') {
+			msgStatus = 1
+		} else {
+			msgStatus = 200;
+		}
+	} else if (msgStatus == 1) { //waehle nachrichten-modus
+		if(empfangen == 's') {
+			msgStatus = 2;
+		} else if(empfangen == 'z') {
+			msgStatus = 3;
+		} else if(empfangen == 'x') {
+			msgStatus = 4;
+		} else if(empfangen == 'r') {
+			msgStatus = 5;
+			rpm_checksum = 0;
+			rpm_lastDigit = 222;
+			rpm_setTo = 0;
+		} else {
+			msgStatus = 200;
+		}
+	} else if (msgStatus == 5) {
+		if(empfangen < '0' || empfangen > '9') {
+			msgStatus = 200;
+		} else if(empfangen == 'r') {
+			msgStatus = 6;
+		} else {
+			rpm_setTo *= 10;
+			rpmSetTo += empfangen - '0';
+			rpm_checksum++;
+		}
+	} else if (msgStatus == 6) {
+		if(empfangen < '0' || empfangen > '9') {
+			msgStatus = 200;
+		}
+		rpm_lastDigit += empfangen - '0';
+	} else {
+		msgStatus = 200;
 	}
-	
 }
 
 // CRON und Regelung
-uint16_t tacho = 0, sollfrequenz = 1200; // Tachofrequenz...
 float kp=0.05, ki=0.01;
 volatile uint16_t eingangsspannung = 0, logikspannung = 0;
 #define IMAX 100
-#define PWMMAX 1023 // Vollgas für 10Bit PWM
+#define PWMMAX 1023 // Vollgas fuer 10Bit PWM
 #define VREF 2560 // in mV
 
 ISR (TIMER2_COMP_vect, ISR_BLOCK) {
@@ -275,13 +352,13 @@ int main(void) {
 	
 	delayms(100);
 	uartTxNewline();
-	uartTxPstrln(PSTR("Motorcontroller für kleine Drehstrommaschinen"));
+	uartTxPstrln(PSTR("<Motorcontroller fuer kleine Drehstrommaschinen>"));
 	uartTxNewline();
 	char buf[100];
 // 	uint16_t tempvar = 0;
 	
 	a4960Init();
-	uartTxStrln("aktiviere Motor mit Druck auf s...");
+	uartTxStrln("aktiviere Motor <s>; Drehzahl <r500r3>; stop <x>; rueckwaerts <z>");
 	
 	
 	sei(); // und es seien Interrupts :D
@@ -291,17 +368,6 @@ int main(void) {
 		sprintf(buf, "F(soll): %u Hz, F(ist): %u Hz, UMotor: %#2.2u mV, ULogik: %#2.2u mV       \r", sollfrequenz, tacho, eingangsspannung, logikspannung);
 		uartTxStr(buf);
 		delayms(250);
-		if (motorstatus) {
-			i++;
-		}
-		if (i == 40) {
-			sollfrequenz = 2000;
-			ON(1);
-		} else if (i == 80) {
-			sollfrequenz = 500;
-			ON(0);
-			i=0;
-		}
 	}
 	return 0;
 }
