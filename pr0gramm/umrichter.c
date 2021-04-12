@@ -160,12 +160,12 @@ ISR (INT1_vect, ISR_BLOCK) {
 
 uint16_t tacho = 0, sollfrequenz = 1200; // Tachofrequenz...
 
+//0 = Warten auf neue; 1 = msg start; 2 = motorCW; 3 = motorCCW; 4 = motor stop; 5 = rpm; 200 = ERROR
+uint8_t msgStatus = 0;
+
 //
 ISR (USART_RXC_vect, ISR_BLOCK) {
 	char empfangen = UDR;
-
-	//0 = Warten auf neue; 1 = msg start; 2 = motorCW; 3 = motorCCW; 4 = motor stop; 5 = rpm; 200 = ERROR
-	static uint8_t msgStatus = 0;
 
 	static uint8_t rpm_checksum = 0;
 	static uint8_t rpm_lastDigit = 0;
@@ -174,7 +174,9 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 	uartTx(empfangen); // remote echo
 
 	if (empfangen == '>') { //
-		if(msgStatus <= 1){
+		if(msgStatus == 99){
+			//Nothing
+		} else if(msgStatus <= 1){
 			uartTxStrln("<NoM>"); //Empty Message
 		} else if(msgStatus == 2){
 			if(motorstatus != -1) {
@@ -225,7 +227,7 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 			rpm_lastDigit = 222;
 			rpm_setTo = 0;
 		} else {
-			msgStatus = 200;
+			msgStatus = 99; //Unbekannte anweisung -> ignorieren
 		}
 	} else if (msgStatus == 5) {
 		if(empfangen < '0' || empfangen > '9') {
@@ -242,6 +244,8 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 			msgStatus = 200;
 		}
 		rpm_lastDigit += empfangen - '0';
+	} else if (msgStatus == 99) {
+		//ignorieren
 	} else {
 		msgStatus = 200;
 	}
@@ -358,14 +362,17 @@ int main(void) {
 // 	uint16_t tempvar = 0;
 	
 	a4960Init();
-	uartTxStrln("aktiviere Motor <s>; Drehzahl <r500r3>; stop <x>; rueckwaerts <z>");
+	uartTxStrln("<...> aktiviere Motor <s>; Drehzahl <r500r3>; stop <x>; rueckwaerts <z>");
 	
 	
 	sei(); // und es seien Interrupts :D
 	
 	uint8_t i = 0;
 	while(1) {
-		sprintf(buf, "F(soll): %u Hz, F(ist): %u Hz, UMotor: %#2.2u mV, ULogik: %#2.2u mV       \r", sollfrequenz, tacho, eingangsspannung, logikspannung);
+		sprintf(buf, "<t F(soll): %u Hz, F(ist): %u Hz, UMotor: %#2.2u mV, ULogik: %#2.2u mV>\r", sollfrequenz, tacho, eingangsspannung, logikspannung);
+		while(msgStatus != 0) {//verhindern von nachrichtenkollision
+			delayms(10);
+		}
 		uartTxStr(buf);
 		delayms(250);
 	}
