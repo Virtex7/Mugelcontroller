@@ -34,7 +34,9 @@
 
 // #define DEBUG
 
+char buf[100];
 
+float kp=0.1, ki=0.01;
 
 // FUNKTIONEN
 
@@ -117,7 +119,7 @@ void a4960Init (void) {
 	sbi(PORTD, PD4); // aktiviere den a4960
 	delayms(10);
 	a4960Com (0b0001, BT3 | DT4 | DT2);
-	a4960Com (0b0011, VR3 | VT5);
+	a4960Com (0b0011, VR3 | VR2 | VR1 | VR0 | VT5);
 	a4960Com (0b0101, PT4);
 	a4960Com (0b0111, HQ1 | HQ0 | HT2);
 	a4960Com (0b1001, EC2 | EC1 | EC0 | SC1);
@@ -170,6 +172,8 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 	static uint8_t rpm_checksum = 0;
 	static uint8_t rpm_lastDigit = 0;
 	static uint16_t rpm_setTo = 0;
+    
+    static uint8_t subState = 0;
 
 	uartTx(empfangen); // remote echo
 
@@ -195,22 +199,34 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 		} else if(msgStatus == 4){
 			a4960MotorOff();
 			uartTxStrln("<ACK>");
-		} else if(msgStatus == 5){
+		} else if(msgStatus == 6){
 			if (rpm_lastDigit == rpm_checksum) {
 				cli();
-				sollfrequenz = rpm_setTo;
-				sei();
-				uartTxStrln("<ACK>");
+				if(subState == 0) {
+                    sollfrequenz = rpm_setTo;
+                    sei();
+                    uartTxStrln("<ACK_r>");
+                } else if(subState == 1) {
+                    ki = (float)rpm_setTo/1000;
+                    sei();
+                    uartTxStrln("<ACK_i>");
+                }  else if(subState == 2) {
+                    kp = (float)rpm_setTo/1000;
+                    sei();
+                    uartTxStrln("<ACK_p>");
+                }
+				
 			} else {
 				uartTxStrln("<ERC>");
 			}
 		} else {
 			uartTxStrln("<ERR>");
+            sprintf(buf, "<t set %u ld: %u cs: %u \r\n", rpm_setTo, rpm_lastDigit, rpm_checksum);
 		}
 		msgStatus = 0;
 	} else if (msgStatus == 0) { //Erwarte Start der Nachricht
 		if (empfangen == '<') {
-			msgStatus = 1
+			msgStatus = 1;
 		} else {
 			msgStatus = 200;
 		}
@@ -221,29 +237,32 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 			msgStatus = 3;
 		} else if(empfangen == 'x') {
 			msgStatus = 4;
-		} else if(empfangen == 'r') {
+		} else if(empfangen == 'r' || empfangen == 'i' || empfangen == 'p') {
 			msgStatus = 5;
 			rpm_checksum = 0;
 			rpm_lastDigit = 222;
 			rpm_setTo = 0;
+            if(empfangen == 'r') { subState = 0; }
+            else if(empfangen == 'i') { subState = 1; }
+            else if(empfangen == 'p') { subState = 2; }
 		} else {
 			msgStatus = 99; //Unbekannte anweisung -> ignorieren
 		}
 	} else if (msgStatus == 5) {
-		if(empfangen < '0' || empfangen > '9') {
-			msgStatus = 200;
-		} else if(empfangen == 'r') {
+        if(empfangen == 'r') {
 			msgStatus = 6;
+		} else if(empfangen < '0' || empfangen > '9') {
+			msgStatus = 200;
 		} else {
 			rpm_setTo *= 10;
-			rpmSetTo += empfangen - '0';
+			rpm_setTo += empfangen - '0';
 			rpm_checksum++;
 		}
 	} else if (msgStatus == 6) {
 		if(empfangen < '0' || empfangen > '9') {
 			msgStatus = 200;
 		}
-		rpm_lastDigit += empfangen - '0';
+		rpm_lastDigit = empfangen - '0';
 	} else if (msgStatus == 99) {
 		//ignorieren
 	} else {
@@ -252,7 +271,6 @@ ISR (USART_RXC_vect, ISR_BLOCK) {
 }
 
 // CRON und Regelung
-float kp=0.05, ki=0.01;
 volatile uint16_t eingangsspannung = 0, logikspannung = 0;
 #define IMAX 100
 #define PWMMAX 1023 // Vollgas fuer 10Bit PWM
@@ -358,7 +376,6 @@ int main(void) {
 	uartTxNewline();
 	uartTxPstrln(PSTR("<Motorcontroller fuer kleine Drehstrommaschinen>"));
 	uartTxNewline();
-	char buf[100];
 // 	uint16_t tempvar = 0;
 	
 	a4960Init();
@@ -367,9 +384,9 @@ int main(void) {
 	
 	sei(); // und es seien Interrupts :D
 	
-	uint8_t i = 0;
+	// uint8_t i = 0;
 	while(1) {
-		sprintf(buf, "<t F(soll): %u Hz, F(ist): %u Hz, UMotor: %#2.2u mV, ULogik: %#2.2u mV>\r", sollfrequenz, tacho, eingangsspannung, logikspannung);
+		sprintf(buf, "<t F(soll): %u Hz, F(ist): %u Hz, UMotor: %u mV, ULogik: %u mV, Ki:%u, Kp:%u>\r", sollfrequenz, tacho, eingangsspannung, logikspannung, (uint16_t)(1000*ki), (uint16_t)(1000*kp));
 		while(msgStatus != 0) {//verhindern von nachrichtenkollision
 			delayms(10);
 		}
