@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name "A4960-Devboard-rescue")(type "Legacy")(uri "${KIPRJMOD}/A4960 Devboard-rescue.lib")(options "")(descr ""))
+  (lib (name "ph-motor")(type "Legacy")(uri "/home/philipp/Dokumente/dev/PhilippsKicadBauteile/Schaltplansymbole/ph-motor.lib")(options "")(descr ""))
+  (lib (name "Resonator_3pins")(type "Legacy")(uri "/home/philipp/Dokumente/dev/PhilippsKicadBauteile/Schaltplansymbole/Resonator_3pins.lib")(options "")(descr ""))
+)

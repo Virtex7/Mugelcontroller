@@ -43,3 +43,5 @@
 # Dateibrowser
 .directory
 thumbs.db
+*-backups
+*-backup
